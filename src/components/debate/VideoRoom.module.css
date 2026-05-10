@@ -1,27 +1,50 @@
 .videoWrapper {
-  width: 100%;
-  height: 600px;
-  background: var(--bg-secondary);
-  border-radius: 16px;
-  border: 2px solid var(--border-color);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  position: relative;
-  box-shadow: 4px 4px 0 rgba(0,0,0,0.05);
+  gap: 16px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
+/* ── Header ── */
 .videoHeader {
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border-color);
-  background: white;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Topic Bar ── */
+.topicBar {
+  text-align: center;
+  padding: 12px 20px;
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* ── ZegoCloud Container ── */
 .videoContainer {
-  flex: 1;
   width: 100%;
-  height: 100%;
+  height: 600px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid var(--border-color);
+  background: #1a1a2e; /* Dark background before Zego UI loads */
+}
+
+@media (max-height: 800px) {
+  .videoContainer {
+    height: 500px;
+  }
 }

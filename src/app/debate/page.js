@@ -30,8 +30,8 @@ export default function DebatePage() {
   const { user } = useAuth();
   const [mode, setMode] = useState("live"); // "live" or "solo"
   const [lobbies, setLobbies] = useState([]);
-  const [activeRoomUrl, setActiveRoomUrl] = useState(null);
   const [isCreatingLobby, setIsCreatingLobby] = useState(false);
+  const [activeDebate, setActiveDebate] = useState(null); // { lobbyId, isHost, topic }
 
   const [phase, setPhase] = useState("select");
   const [topic, setTopic] = useState(null);
@@ -48,16 +48,14 @@ export default function DebatePage() {
     }
   }, [mode]);
 
+
+
   const handleCreateLiveDebate = async (t) => {
     if (!user) return alert("Please log in to host a debate");
     setIsCreatingLobby(true);
     try {
-      const res = await fetch("/api/daily", { method: "POST" });
-      const data = await res.json();
-      if (data.url) {
-        await createLobby(t, user);
-        setActiveRoomUrl(data.url);
-      } else { alert("Failed to get video room"); }
+      const lobbyDoc = await createLobby(t, user, null);
+      setActiveDebate({ lobbyId: lobbyDoc.id, isHost: true, topic: t });
     } catch (e) { console.error(e); }
     setIsCreatingLobby(false);
   };
@@ -65,12 +63,8 @@ export default function DebatePage() {
   const handleJoinLobby = async (lobby) => {
     if (!user) return alert("Please log in to join");
     try {
-      const res = await fetch("/api/daily", { method: "POST" });
-      const data = await res.json();
-      if (data.url) {
-        await joinLobby(lobby.id, user, data.url);
-        setActiveRoomUrl(data.url);
-      }
+      await joinLobby(lobby.id, user, null);
+      setActiveDebate({ lobbyId: lobby.id, isHost: false, topic: lobby.topic });
     } catch (e) { console.error(e); }
   };
 
@@ -138,8 +132,14 @@ export default function DebatePage() {
       <Navbar />
       <main className={styles.main}>
         <div className={styles.container}>
-          {activeRoomUrl ? (
-            <VideoRoom url={activeRoomUrl} onLeave={() => setActiveRoomUrl(null)} />
+          {activeDebate ? (
+            <VideoRoom
+              lobbyId={activeDebate.lobbyId}
+              isHost={activeDebate.isHost}
+              userName={user?.displayName || user?.email?.split('@')[0] || 'User'}
+              topic={activeDebate.topic}
+              onLeave={() => setActiveDebate(null)}
+            />
           ) : phase === "select" && (
             <div className={styles.selectPhase}>
               <div className={styles.header}>

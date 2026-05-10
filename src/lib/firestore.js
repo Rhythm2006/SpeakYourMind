@@ -90,13 +90,13 @@ export const deleteOpinion = async (opinionId) => {
 
 // --- LOBBY METHODS ---
 
-export const createLobby = async (topic, user) => {
+export const createLobby = async (topic, user, roomUrl) => {
   return await addDoc(collection(db, "lobbies"), {
     topic,
     host: { uid: user.uid, name: user.displayName || user.email?.split('@')[0] || "User" },
     guest: null,
     status: "waiting",
-    roomUrl: null,
+    roomUrl: roomUrl || null,
     createdAt: serverTimestamp()
   });
 };

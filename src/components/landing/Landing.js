@@ -279,7 +279,7 @@ export default function Landing() {
               { name: "Hypotheticals", Icon: IconRocket, color: "#F97316", sample: "If the internet shut down forever..." },
             ].map((cat, i) => (
               <div key={cat.name} className={styles.categoryCard}
-                style={{ "--cat-color": cat.color, "--rotate": `${(i % 2 === 0 ? -1 : 1) * (1 + Math.random() * 2)}deg`, animationDelay: `${i * 0.1}s` }}>
+                style={{ "--cat-color": cat.color, "--rotate": `${(i % 2 === 0 ? -1 : 1) * (1 + ((i * 17) % 20) / 10)}deg`, animationDelay: `${i * 0.1}s` }}>
                 <div className={styles.categoryIcon}>
                   <cat.Icon size={28} color={cat.color} />
                 </div>
