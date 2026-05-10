@@ -1,0 +1,405 @@
+/* ============================================
+   Opinion Rooms Page Styles
+   ============================================ */
+
+.main {
+  min-height: 100vh;
+  padding-top: 100px;
+  padding-bottom: 60px;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+  animation: fadeInUp 0.6s var(--ease-out-expo);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.headerTag {
+  display: inline-block;
+  font-size: 1.4rem;
+  color: var(--accent-purple);
+  margin-bottom: 8px;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+/* Categories Grid */
+.categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  animation: fadeInUp 0.6s var(--ease-out-expo) 0.2s both;
+}
+
+.categoryCard {
+  background: var(--bg-card);
+  border: 2px solid rgba(0,0,0,0.05);
+  border-radius: 16px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.4s var(--ease-spring);
+  transform: rotate(var(--rotate));
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.categoryCard:hover {
+  transform: rotate(0deg) translateY(-6px);
+  border-color: var(--cat-color);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.08);
+}
+
+.categoryIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.categoryName {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Room View */
+.roomView {
+  animation: fadeInUp 0.5s var(--ease-out-expo);
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: color 0.3s;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  padding: 4px 0;
+}
+
+.backBtn:hover {
+  color: var(--text-primary);
+}
+
+.roomHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(0,0,0,0.04);
+}
+
+.roomIcon {
+  display: flex;
+  align-items: center;
+}
+
+.roomTitle {
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Room Layout */
+.roomLayout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+}
+
+/* Topics Sidebar */
+.topicsSidebar {
+  border-right: 1px solid rgba(0,0,0,0.06);
+  padding-right: 20px;
+}
+
+.sidebarTitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-light);
+  margin-bottom: 12px;
+}
+
+.topicsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+}
+
+.topicItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+}
+
+.topicItem:hover {
+  background: rgba(0,0,0,0.03);
+}
+
+.topicActive {
+  background: var(--bg-mint-light) !important;
+}
+
+.topicNum {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-light);
+  background: rgba(0,0,0,0.04);
+  border-radius: 6px;
+  margin-top: 2px;
+}
+
+.topicPreview {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Room Content */
+.roomContent {
+  min-height: 400px;
+}
+
+.promptCard {
+  background: var(--bg-card);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-paper);
+}
+
+.promptLabel {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+
+.promptText {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+/* Opinion Input */
+.opinionInput {
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.opinionTextarea {
+  width: 100%;
+  padding: 16px;
+  border: 1.5px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  resize: vertical;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: border-color 0.3s;
+  line-height: 1.6;
+}
+
+.opinionTextarea:focus {
+  outline: none;
+  border-color: rgba(0,0,0,0.15);
+}
+
+.opinionTextarea::placeholder {
+  color: var(--text-muted);
+}
+
+.submitBtn {
+  align-self: flex-end;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+}
+
+.submitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Opinions List */
+.opinionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.opinionCard {
+  background: var(--bg-card);
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 14px;
+  padding: 20px;
+  transition: transform 0.3s var(--ease-out-expo);
+  animation: fadeInUp 0.4s var(--ease-out-expo);
+}
+
+.opinionCard:hover {
+  transform: translateY(-1px);
+}
+
+.opinionHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.opinionAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.opinionUser {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.opinionTime {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  margin-left: auto;
+}
+
+.opinionText {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.opinionReactions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.reactionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(0,0,0,0.01);
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all 0.2s;
+  font-family: var(--font-body);
+}
+
+.reactionBtn:hover {
+  background: rgba(0,0,0,0.04);
+  transform: scale(1.05);
+}
+
+.reactionActive {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.1);
+}
+
+.reactionCount {
+  font-size: 0.68rem;
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .categoriesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .roomLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .topicsSidebar {
+    border-right: none;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    padding-right: 0;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+  }
+
+  .topicsList {
+    max-height: 200px;
+  }
+}
