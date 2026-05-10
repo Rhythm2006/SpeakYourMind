@@ -189,25 +189,35 @@ export default function DebatePage() {
 
                   <h3 className={styles.sideTitle} style={{ marginTop: '3rem' }}>Or host a new topic:</h3>
                   
-                  <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                    <input 
-                      type="text" 
-                      placeholder="Enter a custom topic..." 
-                      className="input" 
-                      value={customTopic}
-                      onChange={(e) => setCustomTopic(e.target.value)}
-                      style={{ flex: 1 }}
-                    />
-                    <button 
-                      className="btn btn-primary" 
-                      disabled={isCreatingLobby || !customTopic.trim()} 
-                      onClick={() => {
-                        handleCreateLiveDebate(customTopic.trim());
-                        setCustomTopic("");
-                      }}
-                    >
-                      Host Custom
-                    </button>
+                  <div className={styles.customTopicWrapper}>
+                    <div className={styles.topicCard} style={{ cursor: 'text' }}>
+                      <span className={styles.topicNum}>+</span>
+                      <input 
+                        type="text" 
+                        placeholder="Write your own custom debate topic..." 
+                        className={styles.customTopicInput}
+                        value={customTopic}
+                        onChange={(e) => setCustomTopic(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && customTopic.trim()) {
+                            handleCreateLiveDebate(customTopic.trim());
+                            setCustomTopic("");
+                          }
+                        }}
+                      />
+                      {customTopic.trim() && (
+                        <button 
+                          className={styles.customTopicBtn}
+                          disabled={isCreatingLobby} 
+                          onClick={() => {
+                            handleCreateLiveDebate(customTopic.trim());
+                            setCustomTopic("");
+                          }}
+                        >
+                          Host
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className={styles.topicsList}>
