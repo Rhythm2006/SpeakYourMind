@@ -56,7 +56,11 @@ export default function VideoRoom({ lobbyId, isHost, userId, userName, topic, on
           },
         },
         onLeaveRoom: () => {
-          onLeave();
+          // Add a tiny delay to allow ZegoCloud to gracefully release the camera hardware
+          // before React aggressively unmounts the component.
+          setTimeout(() => {
+            onLeave();
+          }, 500);
         },
       });
     };

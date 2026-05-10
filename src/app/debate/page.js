@@ -32,6 +32,7 @@ export default function DebatePage() {
   const [lobbies, setLobbies] = useState([]);
   const [isCreatingLobby, setIsCreatingLobby] = useState(false);
   const [activeDebate, setActiveDebate] = useState(null); // { lobbyId, isHost, topic }
+  const [customTopic, setCustomTopic] = useState("");
 
   const [phase, setPhase] = useState("select");
   const [topic, setTopic] = useState(null);
@@ -187,6 +188,28 @@ export default function DebatePage() {
                   )}
 
                   <h3 className={styles.sideTitle} style={{ marginTop: '3rem' }}>Or host a new topic:</h3>
+                  
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Enter a custom topic..." 
+                      className="input" 
+                      value={customTopic}
+                      onChange={(e) => setCustomTopic(e.target.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <button 
+                      className="btn btn-primary" 
+                      disabled={isCreatingLobby || !customTopic.trim()} 
+                      onClick={() => {
+                        handleCreateLiveDebate(customTopic.trim());
+                        setCustomTopic("");
+                      }}
+                    >
+                      Host Custom
+                    </button>
+                  </div>
+
                   <div className={styles.topicsList}>
                     {DEBATE_TOPICS.map((t, i) => (
                       <button key={i}
