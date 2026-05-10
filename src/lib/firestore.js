@@ -10,7 +10,8 @@ import {
   serverTimestamp,
   doc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  onSnapshot
 } from "firebase/firestore";
 
 const db = getFirestore(app);
@@ -85,6 +86,51 @@ export const updateOpinionReactions = async (opinionId, reactions) => {
 export const deleteOpinion = async (opinionId) => {
   const opinionRef = doc(db, "opinions", opinionId);
   return await deleteDoc(opinionRef);
+};
+
+// --- LOBBY METHODS ---
+
+export const createLobby = async (topic, user) => {
+  return await addDoc(collection(db, "lobbies"), {
+    topic,
+    host: { uid: user.uid, name: user.displayName || user.email?.split('@')[0] || "User" },
+    guest: null,
+    status: "waiting",
+    roomUrl: null,
+    createdAt: serverTimestamp()
+  });
+};
+
+export const joinLobby = async (lobbyId, user, roomUrl) => {
+  const lobbyRef = doc(db, "lobbies", lobbyId);
+  return await updateDoc(lobbyRef, {
+    guest: { uid: user.uid, name: user.displayName || user.email?.split('@')[0] || "User" },
+    status: "in-progress",
+    roomUrl
+  });
+};
+
+export const subscribeToLobbies = (callback) => {
+  const q = query(
+    collection(db, "lobbies"),
+    where("status", "==", "waiting")
+  );
+  
+  return onSnapshot(q, (snapshot) => {
+    const lobbies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Sort descending manually to avoid index requirement
+    lobbies.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return timeB - timeA;
+    });
+    callback(lobbies);
+  });
+};
+
+export const deleteLobby = async (lobbyId) => {
+  const lobbyRef = doc(db, "lobbies", lobbyId);
+  return await deleteDoc(lobbyRef);
 };
 
 export default db;

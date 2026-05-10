@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
+import { useAuth } from "@/context/AuthContext";
+import { createLobby, joinLobby, subscribeToLobbies, deleteLobby } from "@/lib/firestore";
+import VideoRoom from "@/components/debate/VideoRoom";
 import {
   IconSwords, IconThumbUp, IconThumbDown, IconRefresh, IconDot,
   IconLightning, IconSparkle, IconBrain, IconTarget, IconArrowRight,
@@ -24,6 +27,12 @@ const DEBATE_TOPICS = [
 ];
 
 export default function DebatePage() {
+  const { user } = useAuth();
+  const [mode, setMode] = useState("live"); // "live" or "solo"
+  const [lobbies, setLobbies] = useState([]);
+  const [activeRoomUrl, setActiveRoomUrl] = useState(null);
+  const [isCreatingLobby, setIsCreatingLobby] = useState(false);
+
   const [phase, setPhase] = useState("select");
   const [topic, setTopic] = useState(null);
   const [side, setSide] = useState(null);
@@ -31,6 +40,45 @@ export default function DebatePage() {
   const [timeLeft, setTimeLeft] = useState(90);
   const [prepTime, setPrepTime] = useState(30);
   const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (mode === "live") {
+      const unsubscribe = subscribeToLobbies(setLobbies);
+      return () => unsubscribe();
+    }
+  }, [mode]);
+
+  const handleCreateLiveDebate = async (t) => {
+    if (!user) return alert("Please log in to host a debate");
+    setIsCreatingLobby(true);
+    try {
+      const res = await fetch("/api/daily", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        await createLobby(t, user);
+        setActiveRoomUrl(data.url);
+      } else { alert("Failed to get video room"); }
+    } catch (e) { console.error(e); }
+    setIsCreatingLobby(false);
+  };
+
+  const handleJoinLobby = async (lobby) => {
+    if (!user) return alert("Please log in to join");
+    try {
+      const res = await fetch("/api/daily", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        await joinLobby(lobby.id, user, data.url);
+        setActiveRoomUrl(data.url);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleDeleteLobby = async (lobbyId) => {
+    try {
+      await deleteLobby(lobbyId);
+    } catch (e) { console.error("Failed to delete lobby", e); }
+  };
 
   const selectTopic = (t) => setTopic(t);
 
@@ -90,19 +138,67 @@ export default function DebatePage() {
       <Navbar />
       <main className={styles.main}>
         <div className={styles.container}>
-          {/* SELECT */}
-          {phase === "select" && (
+          {activeRoomUrl ? (
+            <VideoRoom url={activeRoomUrl} onLeave={() => setActiveRoomUrl(null)} />
+          ) : phase === "select" && (
             <div className={styles.selectPhase}>
               <div className={styles.header}>
                 <span className={`${styles.headerTag} handwritten`}>Debate Mode</span>
                 <h1 className={styles.title}>Pick your battle</h1>
-                <p className={styles.subtitle}>
-                  Choose a topic, pick a side, and defend your position.{" "}
-                  <span className="highlight-red">Then switch sides.</span>
-                </p>
+                
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
+                  <button className={`btn ${mode === 'live' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('live')}>Live Lobbies</button>
+                  <button className={`btn ${mode === 'solo' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('solo')}>Solo Practice</button>
+                </div>
               </div>
 
-              <div className={styles.topicsList}>
+              {mode === "live" && (
+                <div style={{ marginTop: '2rem' }}>
+                  <h3 className={styles.sideTitle}>Active Lobbies</h3>
+                  {lobbies.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No active lobbies. Start one below!</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {lobbies.map(lobby => (
+                        <div key={lobby.id} style={{ padding: '16px', background: 'white', border: '2px solid var(--border-color)', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <p style={{ fontWeight: 600, fontSize: '1.1rem' }}>&ldquo;{lobby.topic}&rdquo;</p>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Hosted by: {lobby.host.name}</p>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {lobby.host.uid === user?.uid ? (
+                              <button className="btn btn-secondary" onClick={() => handleDeleteLobby(lobby.id)}>
+                                Close Lobby
+                              </button>
+                            ) : (
+                              <button className="btn btn-primary" onClick={() => handleJoinLobby(lobby)}>
+                                Join Debate
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <h3 className={styles.sideTitle} style={{ marginTop: '3rem' }}>Or host a new topic:</h3>
+                  <div className={styles.topicsList}>
+                    {DEBATE_TOPICS.map((t, i) => (
+                      <button key={i}
+                        className={`${styles.topicCard} ${topic === t ? styles.topicActive : ""}`}
+                        onClick={() => handleCreateLiveDebate(t)} disabled={isCreatingLobby}>
+                        <span className={styles.topicNum}>{i + 1}</span>
+                        <span className={styles.topicText}>{t}</span>
+                        <span style={{marginLeft:'auto', opacity: 0.5}}><IconSwords size={16}/> Host Live</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {mode === "solo" && (
+                <>
+                  <div className={styles.topicsList}>
                 {DEBATE_TOPICS.map((t, i) => (
                   <button key={i}
                     className={`${styles.topicCard} ${topic === t ? styles.topicActive : ""}`}
@@ -133,6 +229,8 @@ export default function DebatePage() {
                     </button>
                   </div>
                 </div>
+              )}
+                </>
               )}
             </div>
           )}
