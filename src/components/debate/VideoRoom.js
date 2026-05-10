@@ -10,33 +10,42 @@ export default function VideoRoom({ url, onLeave }) {
   const [callObject, setCallObject] = useState(null);
 
   useEffect(() => {
-    if (!videoContainer.current || callObject) return;
+    if (!videoContainer.current) return;
 
-    // Fix for React StrictMode calling useEffect twice
-    const existingFrame = DailyIframe.getCallInstance();
-    if (existingFrame) {
-      existingFrame.destroy();
-    }
+    let newCallObject = null;
 
-    const newCallObject = DailyIframe.createFrame(videoContainer.current, {
-      iframeStyle: {
-        width: "100%",
-        height: "100%",
-        border: "0",
-        borderRadius: "16px",
-      },
-      showLeaveButton: true,
-      showFullscreenButton: true,
-    });
+    const initFrame = async () => {
+      // Fix for React StrictMode calling useEffect twice
+      const existingFrame = DailyIframe.getCallInstance();
+      if (existingFrame) {
+        await existingFrame.destroy();
+      }
+      
+      // If component unmounted while destroying, abort
+      if (!videoContainer.current) return;
 
-    newCallObject.join({ url });
-    setCallObject(newCallObject);
+      newCallObject = DailyIframe.createFrame(videoContainer.current, {
+        iframeStyle: {
+          width: "100%",
+          height: "100%",
+          border: "0",
+          borderRadius: "16px",
+        },
+        showLeaveButton: true,
+        showFullscreenButton: true,
+      });
 
-    newCallObject.on("left-meeting", () => {
-      newCallObject.destroy();
-      setCallObject(null);
-      onLeave();
-    });
+      newCallObject.join({ url });
+      setCallObject(newCallObject);
+
+      newCallObject.on("left-meeting", () => {
+        newCallObject.destroy();
+        setCallObject(null);
+        onLeave();
+      });
+    };
+
+    initFrame();
 
     return () => {
       if (newCallObject) {
