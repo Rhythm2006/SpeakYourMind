@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Navbar from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
@@ -117,6 +117,10 @@ export default function DebatePage() {
     setPhase(round === 1 ? "switch" : "complete");
   };
 
+  const handleLeaveRoom = useCallback(() => {
+    setActiveDebate(null);
+  }, []);
+
   const reset = () => {
     clearInterval(timerRef.current);
     setPhase("select"); setTopic(null); setSide(null); setRound(1); setTimeLeft(90);
@@ -136,9 +140,10 @@ export default function DebatePage() {
             <VideoRoom
               lobbyId={activeDebate.lobbyId}
               isHost={activeDebate.isHost}
+              userId={user?.uid}
               userName={user?.displayName || user?.email?.split('@')[0] || 'User'}
               topic={activeDebate.topic}
-              onLeave={() => setActiveDebate(null)}
+              onLeave={handleLeaveRoom}
             />
           ) : phase === "select" && (
             <div className={styles.selectPhase}>

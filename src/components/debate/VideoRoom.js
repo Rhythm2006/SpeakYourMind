@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { IconSwords } from "@/components/ui/Icons";
 import styles from "./VideoRoom.module.css";
 
-export default function VideoRoom({ lobbyId, isHost, userName, topic, onLeave }) {
+export default function VideoRoom({ lobbyId, isHost, userId, userName, topic, onLeave }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function VideoRoom({ lobbyId, isHost, userName, topic, onLeave })
       const serverSecret = process.env.NEXT_PUBLIC_ZEGO_SERVER_SECRET;
       
       // Ensure userID and roomID are strictly strings
-      const userID = Math.floor(Math.random() * 10000) + "";
+      const zegoUserID = userId ? String(userId) : Math.floor(Math.random() * 10000) + "";
       const roomID = String(lobbyId);
 
       // Generate the token
@@ -28,7 +28,7 @@ export default function VideoRoom({ lobbyId, isHost, userName, topic, onLeave })
         appID,
         serverSecret,
         roomID,
-        userID,
+        zegoUserID,
         userName || "User"
       );
 
