@@ -366,3 +366,25 @@ export function IconDot({ size = 8, color = "currentColor", ...props }) {
     </svg>
   );
 }
+
+// Google 'G' Icon
+export function IconGoogle({ size = 24, color = "currentColor", ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M21.5 12.2c0-.8-.1-1.6-.2-2.2H12v4.4h5.4c-.2 1.4-.8 2.6-1.8 3.5v2.8h2.9c1.7-1.5 2.7-3.8 2.7-6.5z" />
+      <path d="M12 22c2.7 0 4.9-.9 6.6-2.4l-2.9-2.8c-1 .6-2.2 1-3.6 1-2.8 0-5.1-1.9-6-4.4H3.1v2.9C4.8 19.8 8.1 22 12 22z" />
+      <path d="M6 13.4c-.2-.6-.4-1.2-.4-1.9s.2-1.3.4-1.9V6.7H3.1C2.4 8.2 2 9.9 2 11.5s.4 3.3 1.1 4.8l2.9-2.9z" />
+      <path d="M12 4.9c1.4 0 2.7.5 3.7 1.5l2.8-2.8C16.8 1.9 14.6 1 12 1 8.1 1 4.8 3.2 3.1 6.7l2.9 2.9c.9-2.6 3.2-4.7 6-4.7z" />
+    </svg>
+  );
+}
+
+// Trash Icon
+export function IconTrash({ size = 24, color = "currentColor", ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+  );
+}

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
+import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import {
   IconSwords, IconThumbUp, IconThumbDown, IconRefresh, IconDot,
   IconLightning, IconSparkle, IconBrain, IconTarget, IconArrowRight,
@@ -85,7 +86,7 @@ export default function DebatePage() {
   const dashOffset = circumference * (1 - progress);
 
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <main className={styles.main}>
         <div className={styles.container}>
@@ -253,6 +254,6 @@ export default function DebatePage() {
           )}
         </div>
       </main>
-    </>
+    </ProtectedRoute>
   );
 }

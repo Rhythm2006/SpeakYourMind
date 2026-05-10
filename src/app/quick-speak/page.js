@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Navbar from "@/components/layout/Navbar";
+import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import {
   IconMic, IconShuffle, IconStar, IconSparkle, IconSave,
   IconRefresh, IconHand, IconDot, IconFire, IconClock,
 } from "@/components/ui/Icons";
+import { saveSession as saveSessionToDb } from "@/lib/firestore";
 import styles from "./page.module.css";
 
 const DURATIONS = [
@@ -70,15 +72,17 @@ export default function QuickSpeak() {
 
   const saveSession = async () => {
     try {
-      await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: "quick-speak", topic, category: category?.name,
-          duration: duration.value, actualDuration: duration.value - timeLeft,
-          selfRating, notes, completed: true,
-          xpEarned: Math.round((duration.value - timeLeft) / 6) * 10,
-        }),
+      await saveSessionToDb({
+        userId: "anonymous", // we'll use actual userId later
+        mode: "quick-speak",
+        topic,
+        category: category?.name,
+        duration: duration.value,
+        actualDuration: duration.value - timeLeft,
+        selfRating,
+        notes,
+        completed: true,
+        xpEarned: Math.round((duration.value - timeLeft) / 6) * 10,
       });
     } catch (e) { console.error("Failed to save:", e); }
     reset();
@@ -95,7 +99,7 @@ export default function QuickSpeak() {
   const dashOffset = circumference * (1 - progress);
 
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <main className={styles.main}>
         <div className={styles.container}>
@@ -245,6 +249,6 @@ export default function QuickSpeak() {
           )}
         </div>
       </main>
-    </>
+    </ProtectedRoute>
   );
 }

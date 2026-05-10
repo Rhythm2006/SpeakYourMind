@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
+import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import {
   IconFire, IconMic, IconLightning, IconBubble, IconSwords,
   IconStar, IconTrophy, IconMedal, IconChart, IconSparkle,
@@ -59,7 +60,7 @@ export default function Dashboard() {
   };
 
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <main className={styles.main}>
         <div className={styles.container}>
@@ -232,6 +233,6 @@ export default function Dashboard() {
           )}
         </div>
       </main>
-    </>
+    </ProtectedRoute>
   );
 }

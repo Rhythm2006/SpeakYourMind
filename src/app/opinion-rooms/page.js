@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
+import ProtectedRoute from "@/components/layout/ProtectedRoute";
+import { useAuth } from "@/context/AuthContext";
+import { saveOpinion, getTopicOpinions, updateOpinionReactions, deleteOpinion } from "@/lib/firestore";
 import {
   IconParty, IconWave, IconScale, IconHeart, IconBriefcase,
-  IconBrain, IconFire, IconRocket, IconArrowLeft,
+  IconBrain, IconFire, IconRocket, IconArrowLeft, IconTrash,
 } from "@/components/ui/Icons";
 import styles from "./page.module.css";
 
@@ -20,6 +23,7 @@ const CATEGORIES = [
 ];
 
 export default function OpinionRooms() {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [topics, setTopics] = useState([]);
   const [currentTopic, setCurrentTopic] = useState(null);
@@ -42,21 +46,42 @@ export default function OpinionRooms() {
     fetchTopics();
   }, [selectedCategory]);
 
+  useEffect(() => {
+    if (!currentTopic) return;
+    const fetchOpinions = async () => {
+      try {
+        const ops = await getTopicOpinions(currentTopic);
+        setOpinions(ops);
+      } catch (e) { console.error(e); }
+    };
+    fetchOpinions();
+  }, [currentTopic]);
+
   const selectTopic = (topic) => {
     setCurrentTopic(topic);
     setUserOpinion("");
-    setOpinions([
-      { id: 1, user: "Arjun K.", text: "Honestly, I think about this differently than most people. My perspective is shaped by personal experience and I believe we need to consider multiple viewpoints before forming a conclusion.", reactions: { "fire": 12, "agree": 8, "think": 3 }, time: "2m ago" },
-      { id: 2, user: "Priya M.", text: "This is such an interesting prompt. I'd argue that the conventional wisdom is actually wrong here, and here's why...", reactions: { "heart": 15, "clap": 6 }, time: "5m ago" },
-      { id: 3, user: "Dev S.", text: "I used to think one way about this, but after some deep reflection, I've completely changed my stance. Growth requires intellectual flexibility.", reactions: { "fire": 20, "agree": 14, "think": 7, "heart": 5 }, time: "8m ago" },
-    ]);
+    setOpinions([]);
   };
 
-  const submitOpinion = () => {
+  const submitOpinion = async () => {
     if (!userOpinion.trim()) return;
-    const newOpinion = { id: Date.now(), user: "You", text: userOpinion, reactions: {}, time: "Just now" };
-    setOpinions([newOpinion, ...opinions]);
-    setUserOpinion("");
+    
+    const newOpinion = {
+      userId: user?.uid || "anonymous",
+      user: user?.displayName || user?.email?.split('@')[0] || "User",
+      topicId: currentTopic,
+      text: userOpinion,
+      reactions: {},
+      time: "Just now",
+    };
+
+    try {
+      const docRef = await saveOpinion(newOpinion);
+      setOpinions([{ id: docRef.id, ...newOpinion }, ...opinions]);
+      setUserOpinion("");
+    } catch (e) {
+      console.error("Failed to save opinion", e);
+    }
   };
 
   const REACTION_LABELS = [
@@ -68,18 +93,51 @@ export default function OpinionRooms() {
   ];
 
   const addReaction = (opinionId, key) => {
+    if (!user?.uid) return;
+
     setOpinions(opinions.map((o) => {
       if (o.id === opinionId) {
         const reactions = { ...o.reactions };
-        reactions[key] = (reactions[key] || 0) + 1;
+        let userArray = reactions[key];
+        if (!Array.isArray(userArray)) userArray = [];
+
+        if (userArray.includes(user.uid)) {
+          userArray = userArray.filter(uid => uid !== user.uid);
+        } else {
+          userArray = [...userArray, user.uid];
+        }
+
+        if (userArray.length > 0) {
+          reactions[key] = userArray;
+        } else {
+          delete reactions[key];
+        }
+        
+        if (typeof opinionId === "string") {
+          updateOpinionReactions(opinionId, reactions).catch(e => console.error(e));
+        }
+
         return { ...o, reactions };
       }
       return o;
     }));
   };
 
+  const handleDeleteOpinion = async (opinionId) => {
+    if (confirm("Are you sure you want to delete this opinion?")) {
+      setOpinions(opinions.filter(o => o.id !== opinionId));
+      try {
+        if (typeof opinionId === "string") {
+          await deleteOpinion(opinionId);
+        }
+      } catch (e) {
+        console.error("Failed to delete opinion", e);
+      }
+    }
+  };
+
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <main className={styles.main}>
         <div className={styles.container}>
@@ -160,19 +218,30 @@ export default function OpinionRooms() {
                               <span className={styles.opinionAvatar}>{opinion.user.charAt(0)}</span>
                               <span className={styles.opinionUser}>{opinion.user}</span>
                               <span className={styles.opinionTime}>{opinion.time}</span>
+                              {user?.uid === opinion.userId && (
+                                <button className={styles.deleteBtn} onClick={() => handleDeleteOpinion(opinion.id)} title="Delete opinion">
+                                  <IconTrash size={14} color="var(--text-muted)" />
+                                </button>
+                              )}
                             </div>
                             <p className={styles.opinionText}>{opinion.text}</p>
                             <div className={styles.opinionReactions}>
-                              {REACTION_LABELS.map(({ key, label }) => (
-                                <button key={key}
-                                  className={`${styles.reactionBtn} ${opinion.reactions[key] ? styles.reactionActive : ""}`}
-                                  onClick={() => addReaction(opinion.id, key)}>
-                                  {label}
-                                  {opinion.reactions[key] && (
-                                    <span className={styles.reactionCount}>{opinion.reactions[key]}</span>
-                                  )}
-                                </button>
-                              ))}
+                              {REACTION_LABELS.map(({ key, label }) => {
+                                const reacts = opinion.reactions[key];
+                                const count = Array.isArray(reacts) ? reacts.length : (typeof reacts === "number" ? reacts : 0);
+                                const hasReacted = Array.isArray(reacts) && user?.uid && reacts.includes(user.uid);
+                                
+                                return (
+                                  <button key={key}
+                                    className={`${styles.reactionBtn} ${hasReacted ? styles.reactionActive : ""}`}
+                                    onClick={() => addReaction(opinion.id, key)}>
+                                    {label}
+                                    {count > 0 && (
+                                      <span className={styles.reactionCount}>{count}</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         ))}
@@ -185,6 +254,6 @@ export default function OpinionRooms() {
           )}
         </div>
       </main>
-    </>
+    </ProtectedRoute>
   );
 }

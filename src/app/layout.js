@@ -14,10 +14,16 @@ export const metadata = {
   ],
 };
 
+import ClientProviders from "@/components/providers/ClientProviders";
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
+      </body>
     </html>
   );
 }
