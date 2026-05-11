@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
+import { useAuth } from "@/context/AuthContext";
+import { subscribeToUserProfile, getUserSessions, initializeUserProfile } from "@/lib/firestore";
 import {
   IconFire, IconMic, IconLightning, IconBubble, IconSwords,
   IconStar, IconTrophy, IconMedal, IconChart, IconSparkle,
@@ -11,36 +13,21 @@ import {
 } from "@/components/ui/Icons";
 import styles from "./page.module.css";
 
-const DEMO_USER = {
-  name: "Speaker", rank: "Finding Voice", level: 3,
-  xp: 450, xpToNext: 600, streak: 5, longestStreak: 12,
-  totalSessions: 23, totalMinutes: 47,
-  quickSpeakCount: 15, debateCount: 4, opinionCount: 4,
-};
-
-const DEMO_BADGES = [
-  { name: "First Words", Icon: IconMic, earned: true, description: "Complete your first session" },
-  { name: "Three's a Charm", Icon: IconFire, earned: true, description: "3-day streak" },
-  { name: "Week Warrior", Icon: IconLightning, earned: false, description: "7-day streak" },
-  { name: "Quick Thinker", Icon: IconWind, earned: true, description: "10 Quick Speak sessions" },
-  { name: "Debater", Icon: IconSwords, earned: false, description: "5 debate sessions" },
-  { name: "Hour Power", Icon: IconClock, earned: false, description: "1 hour total speaking" },
-  { name: "Opinionated", Icon: IconBubble, earned: false, description: "20 opinions shared" },
-  { name: "Night Owl", Icon: IconOwl, earned: false, description: "Session after midnight" },
-];
-
-const DEMO_HISTORY = [
-  { mode: "quick-speak", topic: "If animals could talk, which would be the rudest?", category: "Fun", duration: 60, rating: 4, xp: 100, date: "Today" },
-  { mode: "debate", topic: "Social media has done more harm than good", category: "Debate", duration: 180, rating: 5, xp: 150, date: "Today" },
-  { mode: "quick-speak", topic: "Is vulnerability a strength or weakness?", category: "Deep", duration: 120, rating: 3, xp: 80, date: "Yesterday" },
-  { mode: "opinion-room", topic: "Is hustle culture toxic or necessary?", category: "Career", duration: 0, rating: 4, xp: 50, date: "Yesterday" },
-  { mode: "quick-speak", topic: "What makes something 'real'?", category: "Philosophy", duration: 60, rating: 5, xp: 100, date: "2 days ago" },
+const BADGES_DEFS = [
+  { id: "first-words", name: "First Words", Icon: IconMic, description: "Complete your first session" },
+  { id: "threes-charm", name: "Three's a Charm", Icon: IconFire, description: "3-day streak" },
+  { id: "week-warrior", name: "Week Warrior", Icon: IconLightning, description: "7-day streak" },
+  { id: "quick-thinker", name: "Quick Thinker", Icon: IconWind, description: "10 Quick Speak sessions" },
+  { id: "debater", name: "Debater", Icon: IconSwords, description: "5 debate sessions" },
+  { id: "hour-power", name: "Hour Power", Icon: IconClock, description: "1 hour total speaking" },
+  { id: "opinionated", name: "Opinionated", Icon: IconBubble, description: "20 opinions shared" },
+  { id: "night-owl", name: "Night Owl", Icon: IconOwl, description: "Session after midnight" },
 ];
 
 const RANK_PROGRESS = [
   { name: "Novice", Icon: IconSprout, xp: 0 },
   { name: "Warming Up", Icon: IconFire, xp: 100 },
-  { name: "Finding Voice", Icon: IconMic, xp: 300, current: true },
+  { name: "Finding Voice", Icon: IconMic, xp: 300 },
   { name: "Confident", Icon: IconBubble, xp: 600 },
   { name: "Eloquent", Icon: IconSparkle, xp: 1000 },
   { name: "Silver Tongue", Icon: IconMedal, xp: 1500 },
@@ -49,14 +36,116 @@ const RANK_PROGRESS = [
 ];
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const user = DEMO_USER;
-  const xpProgress = ((user.xp - 300) / (user.xpToNext - 300)) * 100;
+  const [userProfile, setUserProfile] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    let unsubscribe;
+
+    const setup = async () => {
+      // Ensure the user has a profile document created
+      await initializeUserProfile(user);
+
+      // Subscribe to live user profile
+      unsubscribe = subscribeToUserProfile(user.uid, (profile) => {
+        setUserProfile(profile);
+        setLoading(false);
+      });
+
+      // Fetch history
+      getUserSessions(user.uid).then(history => {
+        setSessions(history);
+      });
+    };
+
+    setup();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
 
   const getModeIcon = (mode) => {
     if (mode === "quick-speak") return <IconLightning size={20} color="var(--accent-yellow)" />;
     if (mode === "debate") return <IconSwords size={20} color="var(--accent-red)" />;
     return <IconBubble size={20} color="var(--accent-purple)" />;
+  };
+
+  if (loading || !userProfile) {
+    return (
+      <ProtectedRoute>
+        <Navbar />
+        <main className={styles.main}>
+          <div className={styles.container} style={{ textAlign: "center", paddingTop: "100px" }}>
+            <p>Loading your dashboard...</p>
+          </div>
+        </main>
+      </ProtectedRoute>
+    );
+  }
+
+  // Calculate XP Progress
+  const currentRankIndex = RANK_PROGRESS.findIndex(r => r.name === userProfile.rank) || 0;
+  const currentRankXp = RANK_PROGRESS[currentRankIndex]?.xp || 0;
+  const nextRankXp = RANK_PROGRESS[currentRankIndex + 1]?.xp || currentRankXp;
+  
+  const xpProgress = nextRankXp === currentRankXp ? 100 : ((userProfile.xp - currentRankXp) / (nextRankXp - currentRankXp)) * 100;
+
+  // Process History
+  const historyList = sessions.map(s => {
+    let dateStr = "Unknown";
+    if (s.createdAt) {
+      const d = new Date(s.createdAt.toMillis ? s.createdAt.toMillis() : s.createdAt);
+      dateStr = d.toLocaleDateString();
+    }
+    return {
+      mode: s.type || "quick-speak",
+      topic: s.topic,
+      category: s.category || "General",
+      duration: s.duration || 0,
+      rating: s.rating || 5, // Default to 5 if not rated
+      xp: s.earnedXp || 0,
+      date: dateStr
+    };
+  });
+
+  // Calculate This Week Activity
+  const weekActivity = {
+    Mon: { sessions: 0, duration: 0 }, Tue: { sessions: 0, duration: 0 },
+    Wed: { sessions: 0, duration: 0 }, Thu: { sessions: 0, duration: 0 },
+    Fri: { sessions: 0, duration: 0 }, Sat: { sessions: 0, duration: 0 },
+    Sun: { sessions: 0, duration: 0 }
+  };
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 is Sunday
+  const diffToMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  const mondayOfThisWeek = new Date(today.setDate(diffToMonday));
+  mondayOfThisWeek.setHours(0, 0, 0, 0);
+
+  sessions.forEach(s => {
+    if (s.createdAt) {
+      const d = new Date(s.createdAt.toMillis ? s.createdAt.toMillis() : s.createdAt);
+      if (d >= mondayOfThisWeek) {
+        const dayStr = d.toLocaleDateString("en-US", { weekday: "short" }); // "Mon", "Tue"
+        if (weekActivity[dayStr]) {
+          weekActivity[dayStr].sessions += 1;
+          weekActivity[dayStr].duration += (s.actualDuration || s.duration || 0); // Add duration in seconds
+        }
+      }
+    }
+  });
+
+  const formatTooltipDuration = (seconds) => {
+    if (!seconds) return "0s";
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
   };
 
   return (
@@ -68,7 +157,7 @@ export default function Dashboard() {
             <div className={styles.headerLeft}>
               <span className={`${styles.headerTag} handwritten`}>Dashboard</span>
               <h1 className={styles.title}>
-                Welcome back, <span className={styles.titleName}>{user.name}</span>
+                Welcome back, <span className={styles.titleName}>{userProfile.name}</span>
               </h1>
               <p className={styles.subtitle}>
                 Keep the momentum going.{" "}
@@ -77,7 +166,7 @@ export default function Dashboard() {
             </div>
             <div className={styles.streakCard}>
               <span className={styles.streakIcon}><IconFire size={28} color="var(--accent-orange)" /></span>
-              <span className={styles.streakNum}>{user.streak}</span>
+              <span className={styles.streakNum}>{userProfile.streak || 0}</span>
               <span className={styles.streakLabel}>day streak</span>
             </div>
           </div>
@@ -99,38 +188,49 @@ export default function Dashboard() {
                 <h3 className={styles.cardTitle}>Current Rank</h3>
                 <div className={styles.rankDisplay}>
                   <span className={styles.rankIcon}><IconMic size={36} color="var(--accent-purple)" /></span>
-                  <span className={styles.rankName}>{user.rank}</span>
-                  <span className={styles.rankLevel}>Level {user.level}</span>
+                  <span className={styles.rankName}>{userProfile.rank}</span>
+                  <span className={styles.rankLevel}>Level {userProfile.level}</span>
                 </div>
                 <div className={styles.xpBar}>
-                  <div className={styles.xpBarFill} style={{ width: `${xpProgress}%` }} />
+                  <div className={styles.xpBarFill} style={{ width: `${Math.min(100, Math.max(0, xpProgress))}%` }} />
                 </div>
                 <div className={styles.xpLabels}>
-                  <span>{user.xp} XP</span><span>{user.xpToNext} XP</span>
+                  <span>{userProfile.xp} XP</span>
+                  <span>{nextRankXp > currentRankXp ? `${nextRankXp} XP` : "MAX"}</span>
                 </div>
               </div>
 
               <div className={`${styles.card} ${styles.statsCard}`}>
                 <h3 className={styles.cardTitle}>Speaking Stats</h3>
                 <div className={styles.statsGrid}>
-                  <div className={styles.statItem}><span className={styles.statNum}>{user.totalSessions}</span><span className={styles.statLabel}>Sessions</span></div>
-                  <div className={styles.statItem}><span className={styles.statNum}>{user.totalMinutes}</span><span className={styles.statLabel}>Minutes Spoken</span></div>
-                  <div className={styles.statItem}><span className={styles.statNum}>{user.longestStreak}</span><span className={styles.statLabel}>Best Streak</span></div>
-                  <div className={styles.statItem}><span className={styles.statNum}>{user.quickSpeakCount}</span><span className={styles.statLabel}>Quick Speaks</span></div>
+                  <div className={styles.statItem}><span className={styles.statNum}>{userProfile.totalSessions || 0}</span><span className={styles.statLabel}>Sessions</span></div>
+                  <div className={styles.statItem}><span className={styles.statNum}>{userProfile.totalMinutes || 0}</span><span className={styles.statLabel}>Minutes Spoken</span></div>
+                  <div className={styles.statItem}><span className={styles.statNum}>{userProfile.longestStreak || 0}</span><span className={styles.statLabel}>Best Streak</span></div>
+                  <div className={styles.statItem}><span className={styles.statNum}>{userProfile.quickSpeakCount || 0}</span><span className={styles.statLabel}>Quick Speaks</span></div>
                 </div>
               </div>
 
               <div className={`${styles.card} ${styles.activityCard}`}>
                 <h3 className={styles.cardTitle}>This Week</h3>
                 <div className={styles.weekGrid}>
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => {
-                    const active = i < 5;
-                    const sessions = active ? Math.floor(Math.random() * 3) + 1 : 0;
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
+                    const dailyData = weekActivity[day] || { sessions: 0, duration: 0 };
+                    const dailySessions = dailyData.sessions;
+                    const dailyDuration = dailyData.duration;
+                    const active = dailySessions > 0;
+                    const heightPercent = Math.min(100, (dailySessions / 4) * 100); // 4 sessions is 100% height
+                    const tooltipText = active ? `${dailySessions} session${dailySessions > 1 ? 's' : ''} (${formatTooltipDuration(dailyDuration)})` : "No sessions";
+                    
                     return (
                       <div key={day} className={styles.weekDay}>
+                        {active && (
+                          <div className={styles.weekTooltip}>
+                            {tooltipText}
+                          </div>
+                        )}
                         <div className={styles.weekBar}>
                           <div className={`${styles.weekBarFill} ${active ? styles.weekBarActive : ""}`}
-                            style={{ height: `${sessions * 30}%` }} />
+                            style={{ height: `${heightPercent}%` }} />
                         </div>
                         <span className={styles.weekLabel}>{day}</span>
                       </div>
@@ -142,24 +242,37 @@ export default function Dashboard() {
               <div className={`${styles.card} ${styles.modesCard}`}>
                 <h3 className={styles.cardTitle}>Mode Breakdown</h3>
                 <div className={styles.modesList}>
-                  <div className={styles.modeRow}>
-                    <span className={styles.modeIcon}><IconLightning size={18} color="var(--accent-yellow)" /></span>
-                    <span className={styles.modeLabel}>Quick Speak</span>
-                    <span className={styles.modeCount}>{user.quickSpeakCount}</span>
-                    <div className={styles.modeBar}><div className={styles.modeBarFill} style={{ width: "65%", background: "var(--accent-yellow)" }} /></div>
-                  </div>
-                  <div className={styles.modeRow}>
-                    <span className={styles.modeIcon}><IconSwords size={18} color="var(--accent-red)" /></span>
-                    <span className={styles.modeLabel}>Debate</span>
-                    <span className={styles.modeCount}>{user.debateCount}</span>
-                    <div className={styles.modeBar}><div className={styles.modeBarFill} style={{ width: "17%", background: "var(--accent-red)" }} /></div>
-                  </div>
-                  <div className={styles.modeRow}>
-                    <span className={styles.modeIcon}><IconBubble size={18} color="var(--accent-purple)" /></span>
-                    <span className={styles.modeLabel}>Opinion Room</span>
-                    <span className={styles.modeCount}>{user.opinionCount}</span>
-                    <div className={styles.modeBar}><div className={styles.modeBarFill} style={{ width: "18%", background: "var(--accent-purple)" }} /></div>
-                  </div>
+                  {(() => {
+                    const qsCount = userProfile.quickSpeakCount || 0;
+                    const dCount = userProfile.debateCount || 0;
+                    const oCount = userProfile.opinionCount || 0;
+                    const totalModes = qsCount + dCount + oCount;
+                    const maxThreshold = Math.max(totalModes, 10); // Require at least 10 sessions to start filling 100%
+                    const getPercent = (c) => (c / maxThreshold) * 100;
+                    
+                    return (
+                      <>
+                        <div className={styles.modeRow}>
+                          <span className={styles.modeIcon}><IconLightning size={18} color="var(--accent-yellow)" /></span>
+                          <span className={styles.modeLabel}>Quick Speak</span>
+                          <span className={styles.modeCount}>{qsCount}</span>
+                          <div className={styles.modeBar}><div className={styles.modeBarFill} style={{ width: `${getPercent(qsCount)}%`, background: "var(--accent-yellow)" }} /></div>
+                        </div>
+                        <div className={styles.modeRow}>
+                          <span className={styles.modeIcon}><IconSwords size={18} color="var(--accent-red)" /></span>
+                          <span className={styles.modeLabel}>Debate</span>
+                          <span className={styles.modeCount}>{dCount}</span>
+                          <div className={styles.modeBar}><div className={styles.modeBarFill} style={{ width: `${getPercent(dCount)}%`, background: "var(--accent-red)" }} /></div>
+                        </div>
+                        <div className={styles.modeRow}>
+                          <span className={styles.modeIcon}><IconBubble size={18} color="var(--accent-purple)" /></span>
+                          <span className={styles.modeLabel}>Opinion Room</span>
+                          <span className={styles.modeCount}>{oCount}</span>
+                          <div className={styles.modeBar}><div className={styles.modeBarFill} style={{ width: `${getPercent(oCount)}%`, background: "var(--accent-purple)" }} /></div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -168,23 +281,30 @@ export default function Dashboard() {
           {/* BADGES */}
           {activeTab === "badges" && (
             <div className={styles.badgesGrid}>
-              {DEMO_BADGES.map((badge, i) => (
-                <div key={i}
-                  className={`${styles.badgeCard} ${!badge.earned ? styles.badgeLocked : ""}`}
-                  style={{ "--rotate": `${(i % 2 === 0 ? -1 : 1) * (0.5 + Math.random())}deg` }}>
-                  <span className={styles.badgeIcon}><badge.Icon size={32} color={badge.earned ? "var(--text-primary)" : "var(--text-muted)"} /></span>
-                  <h4 className={styles.badgeName}>{badge.name}</h4>
-                  <p className={styles.badgeDesc}>{badge.description}</p>
-                  {!badge.earned && <div className={styles.badgeLock}><IconLock size={14} color="var(--text-muted)" /></div>}
-                </div>
-              ))}
+              {BADGES_DEFS.map((badge, i) => {
+                const earned = userProfile.badges?.includes(badge.id);
+                return (
+                  <div key={i}
+                    className={`${styles.badgeCard} ${!earned ? styles.badgeLocked : ""}`}
+                    style={{ "--rotate": `${(i % 2 === 0 ? -1 : 1) * (0.5 + Math.random())}deg` }}>
+                    <span className={styles.badgeIcon}><badge.Icon size={32} color={earned ? "var(--text-primary)" : "var(--text-muted)"} /></span>
+                    <h4 className={styles.badgeName}>{badge.name}</h4>
+                    <p className={styles.badgeDesc}>{badge.description}</p>
+                    {!earned && <div className={styles.badgeLock}><IconLock size={14} color="var(--text-muted)" /></div>}
+                  </div>
+                );
+              })}
             </div>
           )}
 
           {/* HISTORY */}
           {activeTab === "history" && (
             <div className={styles.historyList}>
-              {DEMO_HISTORY.map((session, i) => (
+              {historyList.length === 0 ? (
+                <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "40px" }}>
+                  No sessions yet. Head to Quick Speak or Debate to get started!
+                </p>
+              ) : historyList.map((session, i) => (
                 <div key={i} className={styles.historyCard}>
                   <div className={styles.historyLeft}>
                     <span className={styles.historyMode}>{getModeIcon(session.mode)}</span>
@@ -195,7 +315,7 @@ export default function Dashboard() {
                           {session.category}
                         </span>
                         {session.duration > 0 && (
-                          <span className={styles.historyDuration}>{Math.floor(session.duration / 60)}m</span>
+                          <span className={styles.historyDuration}>{session.duration}m</span>
                         )}
                         <span className={styles.historyDate}>{session.date}</span>
                       </div>
@@ -219,15 +339,19 @@ export default function Dashboard() {
             <div className={styles.rankProgression}>
               <h3 className={`${styles.rankProgressionTitle} handwritten`}>Your Journey</h3>
               <div className={styles.rankTimeline}>
-                {RANK_PROGRESS.map((rank, i) => (
-                  <div key={i} className={`${styles.rankStep} ${rank.current ? styles.rankCurrent : ""} ${rank.xp <= user.xp ? styles.rankCompleted : ""}`}>
-                    <div className={styles.rankStepDot}>
-                      <rank.Icon size={18} color={rank.current ? "var(--accent-purple)" : rank.xp <= user.xp ? "var(--accent-green)" : "var(--text-muted)"} />
+                {RANK_PROGRESS.map((rank, i) => {
+                  const isCurrent = rank.name === userProfile.rank;
+                  const isCompleted = rank.xp <= userProfile.xp;
+                  return (
+                    <div key={i} className={`${styles.rankStep} ${isCurrent ? styles.rankCurrent : ""} ${isCompleted ? styles.rankCompleted : ""}`}>
+                      <div className={styles.rankStepDot}>
+                        <rank.Icon size={18} color={isCurrent ? "var(--accent-purple)" : isCompleted ? "var(--accent-green)" : "var(--text-muted)"} />
+                      </div>
+                      <span className={styles.rankStepName}>{rank.name}</span>
+                      <span className={styles.rankStepXp}>{rank.xp} XP</span>
                     </div>
-                    <span className={styles.rankStepName}>{rank.name}</span>
-                    <span className={styles.rankStepXp}>{rank.xp} XP</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

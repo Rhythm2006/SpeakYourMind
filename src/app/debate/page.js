@@ -4,8 +4,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Navbar from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
-import { createLobby, joinLobby, subscribeToLobbies, deleteLobby } from "@/lib/firestore";
-import VideoRoom from "@/components/debate/VideoRoom";
+import { createLobby, joinLobby, subscribeToLobbies, deleteLobby, saveSession, awardXPAndStats } from "@/lib/firestore";
+import dynamic from 'next/dynamic';
+const VideoRoom = dynamic(() => import("@/components/debate/VideoRoom"), { ssr: false });
 import {
   IconSwords, IconThumbUp, IconThumbDown, IconRefresh, IconDot,
   IconLightning, IconSparkle, IconBrain, IconTarget, IconArrowRight,
@@ -89,6 +90,22 @@ export default function DebatePage() {
 
   const skipPrep = () => { clearInterval(timerRef.current); startRound(); };
 
+  const handleComplete = () => {
+    setPhase("complete");
+    if (user) {
+      saveSession({
+        userId: user.uid,
+        type: "debate",
+        topic,
+        category: "Debate",
+        duration: 3, // Roughly 3 mins total
+        rating: 5,
+        earnedXp: 150
+      });
+      awardXPAndStats(user.uid, "debate", 3, 150);
+    }
+  };
+
   const startRound = () => {
     setPhase("speaking"); setTimeLeft(90);
     let time = 90;
@@ -97,7 +114,11 @@ export default function DebatePage() {
       setTimeLeft(time);
       if (time <= 0) {
         clearInterval(timerRef.current);
-        setPhase(round === 1 ? "switch" : "complete");
+        if (round === 1) {
+          setPhase("switch");
+        } else {
+          handleComplete();
+        }
       }
     }, 1000);
   };
@@ -115,12 +136,19 @@ export default function DebatePage() {
 
   const endEarly = () => {
     clearInterval(timerRef.current);
-    setPhase(round === 1 ? "switch" : "complete");
+    if (round === 1) {
+      setPhase("switch");
+    } else {
+      handleComplete();
+    }
   };
 
   const handleLeaveRoom = useCallback(() => {
+    if (activeDebate?.isHost) {
+      handleDeleteLobby(activeDebate.lobbyId);
+    }
     setActiveDebate(null);
-  }, []);
+  }, [activeDebate]);
 
   const reset = () => {
     clearInterval(timerRef.current);

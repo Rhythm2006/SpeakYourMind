@@ -10,6 +10,7 @@ import styles from "./Navbar.module.css";
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -18,6 +19,16 @@ export default function Navbar() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(`.${styles.userMenuContainer}`)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
   return (
@@ -44,13 +55,31 @@ export default function Navbar() {
         {/* CTA */}
         <div className={styles.actions}>
           {user ? (
-            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-              <button onClick={() => logout()} className="btn btn-secondary">
-                Log Out
-              </button>
+            <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
               <Link href="/quick-speak" className={`btn btn-primary ${styles.cta}`}>
                 Start Speaking
               </Link>
+              <div className={styles.userMenuContainer}>
+                <button 
+                  className={styles.userAvatar} 
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                >
+                  {user.displayName ? user.displayName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : "U")}
+                </button>
+                {userMenuOpen && (
+                  <div className={styles.userDropdown}>
+                    <Link href="/notes" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
+                      My Notes
+                    </Link>
+                    <a href="mailto:support@speakyourmind.com" className={styles.dropdownItem} onClick={() => setUserMenuOpen(false)}>
+                      Support
+                    </a>
+                    <button className={`${styles.dropdownItem} ${styles.dropdownLogout}`} onClick={() => { logout(); setUserMenuOpen(false); }}>
+                      Log Out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <Link href="/login" className={`btn btn-primary ${styles.cta}`}>

@@ -11,6 +11,8 @@ import {
   signInWithPopup
 } from "firebase/auth";
 
+import { initializeUserProfile } from "./firestore";
+
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
@@ -21,19 +23,21 @@ export const signup = async (email, password, displayName) => {
     await updateProfile(userCredential.user, { displayName });
   }
 
-  // Optional: Send email verification
-  // await sendEmailVerification(userCredential.user);
+  // Ensure their profile exists in Firestore
+  await initializeUserProfile(userCredential.user);
 
   return userCredential.user;
 };
 
 export const login = async (email, password) => {
   const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  await initializeUserProfile(userCredential.user);
   return userCredential.user;
 };
 
 export const loginWithGoogle = async () => {
   const result = await signInWithPopup(auth, googleProvider);
+  await initializeUserProfile(result.user);
   return result.user;
 };
 

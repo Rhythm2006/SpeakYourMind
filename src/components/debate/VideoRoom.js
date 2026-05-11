@@ -7,17 +7,26 @@ import styles from "./VideoRoom.module.css";
 export default function VideoRoom({ lobbyId, isHost, userId, userName, topic, onLeave }) {
   const containerRef = useRef(null);
 
+  const zpRef = useRef(null);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
-    let zp = null;
+    let isCancelled = false;
 
     const initZego = async () => {
       // Dynamically import ZegoCloud to prevent Next.js SSR 'document is not defined' error
       const { ZegoUIKitPrebuilt } = await import("@zegocloud/zego-uikit-prebuilt");
 
+      if (isCancelled) return;
+
       const appID = Number(process.env.NEXT_PUBLIC_ZEGO_APP_ID);
-      const serverSecret = process.env.NEXT_PUBLIC_ZEGO_SERVER_SECRET;
+      const serverSecret = process.env.NEXT_PUBLIC_ZEGO_SERVER_SECRET?.trim();
+
+      if (!appID || !serverSecret) {
+        console.error("ZegoCloud configuration is missing!");
+        return;
+      }
       
       // Ensure userID and roomID are strictly strings
       const zegoUserID = userId ? String(userId) : Math.floor(Math.random() * 10000) + "";
@@ -32,11 +41,13 @@ export default function VideoRoom({ lobbyId, isHost, userId, userName, topic, on
         userName || "User"
       );
 
+      if (isCancelled) return;
+
       // Create instance
-      zp = ZegoUIKitPrebuilt.create(kitToken);
+      zpRef.current = ZegoUIKitPrebuilt.create(kitToken);
 
       // Join the room with your configuration
-      zp.joinRoom({
+      zpRef.current.joinRoom({
         container: containerRef.current,
         turnOnMicrophoneWhenJoining: true,
         turnOnCameraWhenJoining: true,
@@ -50,17 +61,14 @@ export default function VideoRoom({ lobbyId, isHost, userId, userName, topic, on
         layout: "Auto",
         showLayoutButton: false,
         scenario: {
-          mode: "OneONoneCall",
-          config: {
-            role: "Host", // Everyone can be host in 1on1 calls usually, or we can use isHost ? "Host" : "Audience" if it was live stream
-          },
+          mode: ZegoUIKitPrebuilt.OneONoneCall, // use the enum
         },
         onLeaveRoom: () => {
-          // Add a tiny delay to allow ZegoCloud to gracefully release the camera hardware
-          // before React aggressively unmounts the component.
-          setTimeout(() => {
-            onLeave();
-          }, 500);
+          if (zpRef.current) {
+            zpRef.current.destroy();
+            zpRef.current = null;
+          }
+          onLeave();
         },
       });
     };
@@ -68,8 +76,10 @@ export default function VideoRoom({ lobbyId, isHost, userId, userName, topic, on
     initZego();
 
     return () => {
-      if (zp) {
-        zp.destroy();
+      isCancelled = true;
+      if (zpRef.current) {
+        zpRef.current.destroy();
+        zpRef.current = null;
       }
     };
   }, [lobbyId, userName, onLeave]);

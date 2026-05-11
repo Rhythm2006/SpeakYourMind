@@ -7,7 +7,8 @@ import {
   IconMic, IconShuffle, IconStar, IconSparkle, IconSave,
   IconRefresh, IconHand, IconDot, IconFire, IconClock,
 } from "@/components/ui/Icons";
-import { saveSession as saveSessionToDb } from "@/lib/firestore";
+import { useAuth } from "@/context/AuthContext";
+import { saveSession as saveSessionToDb, awardXPAndStats } from "@/lib/firestore";
 import styles from "./page.module.css";
 
 const DURATIONS = [
@@ -17,6 +18,7 @@ const DURATIONS = [
 ];
 
 export default function QuickSpeak() {
+  const { user } = useAuth();
   const [phase, setPhase] = useState("setup");
   const [topic, setTopic] = useState(null);
   const [category, setCategory] = useState(null);
@@ -71,20 +73,26 @@ export default function QuickSpeak() {
   };
 
   const saveSession = async () => {
-    try {
-      await saveSessionToDb({
-        userId: "anonymous", // we'll use actual userId later
-        mode: "quick-speak",
-        topic,
-        category: category?.name,
-        duration: duration.value,
-        actualDuration: duration.value - timeLeft,
-        selfRating,
-        notes,
-        completed: true,
-        xpEarned: Math.round((duration.value - timeLeft) / 6) * 10,
-      });
-    } catch (e) { console.error("Failed to save:", e); }
+    const actualDuration = duration.value - timeLeft;
+    const xpEarned = Math.round(actualDuration / 6) * 10;
+    
+    if (user) {
+      try {
+        await saveSessionToDb({
+          userId: user.uid,
+          mode: "quick-speak",
+          topic,
+          category: category?.name,
+          duration: duration.value,
+          actualDuration,
+          selfRating,
+          notes,
+          completed: true,
+          xpEarned,
+        });
+        await awardXPAndStats(user.uid, "quick-speak", Math.ceil(actualDuration / 60), xpEarned);
+      } catch (e) { console.error("Failed to save:", e); }
+    }
     reset();
   };
 

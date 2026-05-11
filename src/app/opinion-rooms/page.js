@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
-import { saveOpinion, getTopicOpinions, updateOpinionReactions, deleteOpinion } from "@/lib/firestore";
+import { saveOpinion, getTopicOpinions, updateOpinionReactions, deleteOpinion, awardXPAndStats } from "@/lib/firestore";
 import {
   IconParty, IconWave, IconScale, IconHeart, IconBriefcase,
   IconBrain, IconFire, IconRocket, IconArrowLeft, IconTrash,
@@ -79,6 +79,10 @@ export default function OpinionRooms() {
       const docRef = await saveOpinion(newOpinion);
       setOpinions([{ id: docRef.id, ...newOpinion }, ...opinions]);
       setUserOpinion("");
+      
+      if (user?.uid) {
+        await awardXPAndStats(user.uid, "opinion", 0, 50);
+      }
     } catch (e) {
       console.error("Failed to save opinion", e);
     }

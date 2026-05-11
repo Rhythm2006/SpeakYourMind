@@ -15,22 +15,22 @@ import styles from "./Landing.module.css";
 const floatingElements = [
   { id: 1, type: "sticky", text: "Why do we dream?", color: "yellow", x: 8, y: 18, rotate: -3, delay: 0 },
   { id: 2, type: "tag", text: "DEBATE", color: "red", x: 75, y: 12, rotate: 5, delay: 0.2 },
-  { id: 3, type: "bubble", text: "Is pineapple on pizza valid?", x: 60, y: 25, rotate: -1, delay: 0.4 },
+  { id: 3, type: "bubble", text: "Is pineapple on pizza valid?", x: 82, y: 22, rotate: -1, delay: 0.4 },
   { id: 4, type: "sticky", text: "Tell me about your biggest fear", color: "pink", x: 85, y: 35, rotate: 2, delay: 0.6 },
   { id: 5, type: "note", text: "3 min challenge", x: 12, y: 42, rotate: -5, delay: 0.1 },
   { id: 6, type: "tag", text: "FUN", color: "yellow", x: 90, y: 55, rotate: -2, delay: 0.3 },
   { id: 7, type: "sticky", text: "If money didn't exist...", color: "blue", x: 5, y: 65, rotate: 3, delay: 0.5 },
-  { id: 8, type: "bubble", text: "Convince me in 60 seconds", x: 35, y: 72, rotate: -2, delay: 0.7 },
-  { id: 9, type: "tag", text: "DEEP", color: "blue", x: 70, y: 68, rotate: 4, delay: 0.15 },
+  { id: 8, type: "bubble", text: "Convince me in 60 seconds", x: 18, y: 78, rotate: -2, delay: 0.7 },
+  { id: 9, type: "tag", text: "DEEP", color: "blue", x: 70, y: 85, rotate: 4, delay: 0.15 },
   { id: 10, type: "note", text: "7-day streak!", x: 82, y: 78, rotate: -3, delay: 0.35 },
-  { id: 11, type: "tag", text: "ETHICS", color: "purple", x: 20, y: 82, rotate: 1, delay: 0.55 },
-  { id: 12, type: "sticky", text: "What makes you, you?", color: "green", x: 50, y: 85, rotate: -4, delay: 0.25 },
-  { id: 13, type: "bubble", text: "Hot take: school doesn't teach thinking", x: 15, y: 30, rotate: 2, delay: 0.45 },
-  { id: 14, type: "tag", text: "CAREER", color: "green", x: 45, y: 15, rotate: -6, delay: 0.65 },
+  { id: 11, type: "tag", text: "ETHICS", color: "purple", x: 20, y: 88, rotate: 1, delay: 0.55 },
+  { id: 12, type: "sticky", text: "What makes you, you?", color: "green", x: 50, y: 92, rotate: -4, delay: 0.25 },
+  { id: 13, type: "bubble", text: "Hot take: school doesn't teach thinking", x: 10, y: 30, rotate: 2, delay: 0.45 },
+  { id: 14, type: "tag", text: "CAREER", color: "green", x: 25, y: 10, rotate: -6, delay: 0.65 },
   { id: 15, type: "note", text: "Level Up!", x: 92, y: 22, rotate: 3, delay: 0.08 },
-  { id: 16, type: "sticky", text: "Would you rather...", color: "orange", x: 30, y: 55, rotate: -2, delay: 0.38 },
-  { id: 17, type: "tag", text: "SPEAK", color: "red", x: 55, y: 45, rotate: 7, delay: 0.48 },
-  { id: 18, type: "bubble", text: "I think AI will replace artists", x: 72, y: 48, rotate: -3, delay: 0.58 },
+  { id: 16, type: "sticky", text: "Would you rather...", color: "orange", x: 8, y: 52, rotate: -2, delay: 0.38 },
+  { id: 17, type: "tag", text: "SPEAK", color: "red", x: 85, y: 48, rotate: 7, delay: 0.48 },
+  { id: 18, type: "bubble", text: "I think AI will replace artists", x: 78, y: 62, rotate: -3, delay: 0.58 },
 ];
 
 function FloatingElement({ el }) {
@@ -285,7 +285,7 @@ export default function Landing() {
                 </div>
                 <h4 className={styles.categoryName}>{cat.name}</h4>
                 <p className={styles.categorySample}>&ldquo;{cat.sample}&rdquo;</p>
-                <span className={styles.categoryCount}>15 prompts</span>
+                <span className={styles.categoryCount}>100 prompts</span>
               </div>
             ))}
           </div>
