@@ -375,7 +375,6 @@
   border: none;
   padding: 6px;
   cursor: pointer;
-  margin-left: auto;
   opacity: 0;
   transition: opacity 0.2s, color 0.2s;
   color: var(--text-muted);
