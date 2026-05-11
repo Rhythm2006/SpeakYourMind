@@ -451,3 +451,50 @@ h4 { font-size: clamp(1.1rem, 2vw, 1.4rem); }
     padding: 0 var(--space-md);
   }
 }
+
+/* ---- Mobile Warning Screen ---- */
+.mobile-warning {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mobile-warning {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--bg-cream);
+    z-index: 99999;
+    text-align: center;
+    padding: var(--space-xl);
+  }
+  
+  .mobile-warning-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .mobile-warning h2 {
+    font-family: var(--font-serif);
+    color: var(--text-primary);
+    margin-top: var(--space-md);
+  }
+
+  .mobile-warning p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    max-width: 320px;
+    line-height: 1.5;
+  }
+
+  .desktop-app-wrapper {
+    display: none;
+  }
+}
