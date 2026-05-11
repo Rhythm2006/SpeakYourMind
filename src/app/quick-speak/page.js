@@ -27,7 +27,21 @@ export default function QuickSpeak() {
   const [countdownNum, setCountdownNum] = useState(3);
   const [selfRating, setSelfRating] = useState(0);
   const [notes, setNotes] = useState("");
+  
+  // AI Coach States
+  const [finalTranscript, setFinalTranscript] = useState("");
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const [wordCount, setWordCount] = useState(0);
+  const [fillerCount, setFillerCount] = useState(0);
+  const [recognitionSupported, setRecognitionSupported] = useState(true);
+  const [aiReport, setAiReport] = useState(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
   const timerRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunkIntervalRef = useRef(null);
+  const isSpeakingRef = useRef(false);
 
   const fetchTopic = useCallback(async () => {
     try {
@@ -43,6 +57,86 @@ export default function QuickSpeak() {
 
   useEffect(() => { fetchTopic(); }, [fetchTopic]);
 
+  const sendChunkToAPI = async (audioBlob) => {
+    if (audioBlob.size === 0) return;
+    
+    setInterimTranscript("...analyzing audio...");
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", audioBlob, "chunk.webm");
+      
+      const res = await fetch("/api/speech", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) throw new Error("API error");
+      
+      const data = await res.json();
+      if (data.text) {
+         setFinalTranscript(prev => {
+            const newFinal = prev + " " + data.text;
+            
+            const words = newFinal.trim().split(/\s+/).filter(w => w.length > 0);
+            setWordCount(words.length);
+            
+            const fillerRegex = /\b(um|uh|umm|uhh|like|literally|basically)\b/gi;
+            const matches = newFinal.toLowerCase().match(fillerRegex);
+            setFillerCount(matches ? matches.length : 0);
+            
+            return newFinal.trim();
+         });
+      }
+    } catch (e) {
+      console.error("Transcription failed:", e);
+    } finally {
+      setInterimTranscript("");
+    }
+  };
+
+  const startRecordingChunk = () => {
+     if (!streamRef.current || !isSpeakingRef.current) return;
+     
+     try {
+       const recorder = new MediaRecorder(streamRef.current, { mimeType: 'audio/webm' });
+       
+       recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+             sendChunkToAPI(e.data);
+          }
+       };
+       
+       recorder.start();
+       mediaRecorderRef.current = recorder;
+       
+       chunkIntervalRef.current = setTimeout(() => {
+          if (recorder.state === "recording") {
+             recorder.stop();
+          }
+          if (isSpeakingRef.current) {
+             startRecordingChunk();
+          }
+       }, 4000);
+       
+     } catch (e) {
+       console.error("Failed to start MediaRecorder:", e);
+       setRecognitionSupported(false);
+     }
+  };
+
+  const stopRecording = () => {
+    isSpeakingRef.current = false;
+    clearTimeout(chunkIntervalRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+       mediaRecorderRef.current.stop();
+    }
+    if (streamRef.current) {
+       streamRef.current.getTracks().forEach(track => track.stop());
+       streamRef.current = null;
+    }
+  };
+
   const startCountdown = () => {
     setPhase("countdown");
     setCountdownNum(3);
@@ -54,22 +148,88 @@ export default function QuickSpeak() {
     }, 1000);
   };
 
-  const startSpeaking = () => {
+  const startSpeaking = async () => {
     setPhase("speaking");
     setTimeLeft(duration.value);
+    
+    setFinalTranscript("");
+    setInterimTranscript("");
+    setWordCount(0);
+    setFillerCount(0);
+    isSpeakingRef.current = true;
+    
+    try {
+      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      startRecordingChunk();
+    } catch (e) {
+      console.error("Microphone access denied:", e);
+      setRecognitionSupported(false);
+    }
+
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) { clearInterval(timerRef.current); setPhase("complete"); return 0; }
+        if (prev <= 1) { 
+          clearInterval(timerRef.current); 
+          stopRecording();
+          setPhase("complete"); 
+          return 0; 
+        }
         return prev - 1;
       });
     }, 1000);
   };
 
-  const endSpeaking = () => { clearInterval(timerRef.current); setPhase("complete"); };
+  const endSpeaking = () => { 
+    clearInterval(timerRef.current); 
+    stopRecording();
+    setPhase("complete"); 
+  };
 
   const reset = () => {
     clearInterval(timerRef.current);
-    setPhase("setup"); setTimeLeft(duration.value); setSelfRating(0); setNotes(""); fetchTopic();
+    stopRecording();
+    setPhase("setup"); setTimeLeft(duration.value); setSelfRating(0); setNotes(""); 
+    setFinalTranscript(""); setInterimTranscript(""); setWordCount(0); setFillerCount(0);
+    setAiReport(null); setIsGeneratingReport(false);
+    fetchTopic();
+  };
+
+  const generateReport = async () => {
+    setIsGeneratingReport(true);
+    try {
+      const res = await fetch("/api/analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript: finalTranscript,
+          topic: topic,
+          wpm: Math.round(wordCount / (Math.max(1, duration.value - timeLeft) / 60)),
+          fillerCount: fillerCount
+        })
+      });
+      const data = await res.json();
+      if (data.report) {
+        setAiReport(data.report);
+      } else {
+        setAiReport("Failed to generate report.");
+      }
+    } catch (e) {
+      console.error(e);
+      setAiReport("Error generating report.");
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  const renderMarkdown = (text) => {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => {
+      let formattedLine = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      if (line.startsWith('### ')) return <h3 key={i} className={styles.reportH3} dangerouslySetInnerHTML={{__html: formattedLine.replace('### ', '')}} />;
+      if (line.startsWith('- ')) return <li key={i} className={styles.reportLi} dangerouslySetInnerHTML={{__html: formattedLine.replace('- ', '')}} />;
+      if (line.trim() === '') return <br key={i} />;
+      return <p key={i} className={styles.reportP} dangerouslySetInnerHTML={{__html: formattedLine}} />;
+    });
   };
 
   const saveSession = async () => {
@@ -105,6 +265,9 @@ export default function QuickSpeak() {
   const progress = timeLeft / duration.value;
   const circumference = 2 * Math.PI * 120;
   const dashOffset = circumference * (1 - progress);
+  
+  const actualDurationSec = Math.max(1, duration.value - timeLeft);
+  const currentWpm = Math.round(wordCount / (actualDurationSec / 60));
 
   return (
     <ProtectedRoute>
@@ -191,6 +354,24 @@ export default function QuickSpeak() {
                 <IconDot size={8} color="var(--accent-red)" className={styles.recordingDot} />
                 <span>SPEAKING</span>
               </div>
+              
+              {recognitionSupported && (
+                 <div className={styles.liveStatsWidget}>
+                    <div className={styles.statsRow}>
+                      <div className={styles.statBox}>
+                         <span className={styles.statValue}>{currentWpm}</span>
+                         <span className={styles.statLabel}>WPM</span>
+                      </div>
+                      <div className={styles.statBox}>
+                         <span className={styles.statValue}>{fillerCount}</span>
+                         <span className={styles.statLabel}>Fillers</span>
+                      </div>
+                    </div>
+                    <div className={styles.liveTranscript}>
+                       {finalTranscript.split(" ").slice(-15).join(" ")} <span style={{opacity: 0.5}}>{interimTranscript}</span>
+                    </div>
+                 </div>
+              )}
 
               <div className={styles.topicReminder}>
                 <span className={styles.topicReminderLabel}>Your topic:</span>
@@ -216,6 +397,47 @@ export default function QuickSpeak() {
               <div className={styles.completeTopic}>
                 <em>&ldquo;{topic}&rdquo;</em>
               </div>
+
+              {recognitionSupported && (
+                 <div className={styles.aiCoachCard}>
+                    <h3 className={styles.aiCoachTitle}><IconSparkle size={16} /> AI Coach Feedback</h3>
+                    <div className={styles.aiStatsGrid}>
+                       <div className={styles.aiStat}>
+                          <span className={styles.aiStatValue}>{currentWpm}</span>
+                          <span className={styles.aiStatLabel}>Avg WPM</span>
+                       </div>
+                       <div className={styles.aiStat}>
+                          <span className={styles.aiStatValue}>{fillerCount}</span>
+                          <span className={styles.aiStatLabel}>Filler Words</span>
+                       </div>
+                    </div>
+                    <p className={styles.aiCoachMessage}>
+                       {fillerCount > 5 ? "You had a few too many filler words ('um', 'uh', 'like'). Try pausing instead of filling the silence." : 
+                        currentWpm < 100 ? "Your pacing was a bit slow. Try to speak a little faster to keep the listener engaged." :
+                        currentWpm > 160 ? "Your pacing was quite fast! Make sure to take breaths and pause for emphasis." :
+                        "Great pacing and clarity! You spoke naturally and clearly."}
+                    </p>
+                    
+                     {!aiReport && !isGeneratingReport && finalTranscript.trim().length > 0 && (
+                        <button className={styles.generateReportBtn} onClick={generateReport}>
+                           <IconSparkle size={14} /> Get Detailed AI Analysis
+                        </button>
+                     )}
+                     
+                     {isGeneratingReport && (
+                        <div className={styles.reportLoading}>
+                           <IconRefresh size={20} className={styles.spinner} />
+                           <span>Analyzing your speech...</span>
+                        </div>
+                     )}
+                     
+                     {aiReport && (
+                        <div className={styles.detailedReport}>
+                           {renderMarkdown(aiReport)}
+                        </div>
+                     )}
+                 </div>
+              )}
 
               <div className={styles.xpEarned}>
                 <IconSparkle size={16} color="#B45309" />

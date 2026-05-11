@@ -103,13 +103,15 @@ export default function Dashboard() {
       const d = new Date(s.createdAt.toMillis ? s.createdAt.toMillis() : s.createdAt);
       dateStr = d.toLocaleDateString();
     }
+    const actualSec = s.actualDuration || s.duration || 0;
+    const durationMinutes = Math.max(1, Math.round(actualSec / 60));
     return {
-      mode: s.type || "quick-speak",
+      mode: s.mode || "quick-speak",
       topic: s.topic,
       category: s.category || "General",
-      duration: s.duration || 0,
-      rating: s.rating || 5, // Default to 5 if not rated
-      xp: s.earnedXp || 0,
+      duration: durationMinutes,
+      rating: s.selfRating || s.rating || 0,
+      xp: s.xpEarned || s.earnedXp || 0,
       date: dateStr
     };
   });
@@ -121,10 +123,11 @@ export default function Dashboard() {
     Fri: { sessions: 0, duration: 0 }, Sat: { sessions: 0, duration: 0 },
     Sun: { sessions: 0, duration: 0 }
   };
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 is Sunday
-  const diffToMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-  const mondayOfThisWeek = new Date(today.setDate(diffToMonday));
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 is Sunday
+  const diffToMonday = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  const mondayOfThisWeek = new Date(now);
+  mondayOfThisWeek.setDate(diffToMonday);
   mondayOfThisWeek.setHours(0, 0, 0, 0);
 
   sessions.forEach(s => {

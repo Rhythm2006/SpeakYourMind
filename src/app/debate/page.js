@@ -95,12 +95,14 @@ export default function DebatePage() {
     if (user) {
       saveSession({
         userId: user.uid,
-        type: "debate",
+        mode: "debate",
         topic,
         category: "Debate",
-        duration: 3, // Roughly 3 mins total
-        rating: 5,
-        earnedXp: 150
+        duration: 180,
+        actualDuration: 180,
+        selfRating: 5,
+        completed: true,
+        xpEarned: 150
       });
       awardXPAndStats(user.uid, "debate", 3, 150);
     }
@@ -144,11 +146,18 @@ export default function DebatePage() {
   };
 
   const handleLeaveRoom = useCallback(() => {
-    if (activeDebate?.isHost) {
-      handleDeleteLobby(activeDebate.lobbyId);
+    if (activeDebate?.isHost && activeDebate?.lobbyId) {
+      deleteLobby(activeDebate.lobbyId).catch(e => console.error(e));
     }
     setActiveDebate(null);
   }, [activeDebate]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      clearInterval(timerRef.current);
+    };
+  }, []);
 
   const reset = () => {
     clearInterval(timerRef.current);

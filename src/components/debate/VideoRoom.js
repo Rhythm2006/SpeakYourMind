@@ -82,7 +82,7 @@ export default function VideoRoom({ lobbyId, isHost, userId, userName, topic, on
         zpRef.current = null;
       }
     };
-  }, [lobbyId, userName, onLeave]);
+  }, [lobbyId, userId, userName, onLeave]);
 
   return (
     <div className={styles.videoWrapper}>
