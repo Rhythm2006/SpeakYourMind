@@ -47,8 +47,10 @@ export default function Login() {
       await loginWithGoogle();
       router.push("/dashboard");
     } catch (err) {
+      console.error("Google sign-in error details:", err);
       if (err.code !== "auth/popup-closed-by-user") {
-        setError("Failed to sign in with Google. Please try again.");
+        const detail = err.message || err.code || String(err);
+        setError(`Failed to sign in with Google: ${detail}`);
       }
     } finally {
       setLoading(false);

@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if the user is signed in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the document belongs to the signed-in user
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      // Allow reading any profile if authenticated, but only the owner can write to it
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // --- Sessions Collection ---
+    match /sessions/{sessionId} {
+      // Allow creating a session if signed in
+      allow create: if isAuthenticated();
+      // Allow reading, updating, or deleting if the session belongs to the signed-in user
+      allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // --- Opinions Collection ---
+    match /opinions/{opinionId} {
+      // Anyone signed in can read and create opinions
+      allow read, create: if isAuthenticated();
+      // Only the author can delete
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Allow updating if the user is the author, OR if they are only modifying the 'reactions' map
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+      );
+    }
+
+    // --- Lobbies Collection ---
+    match /lobbies/{lobbyId} {
+      // Lobbies are shared for multiplayer/real-time debates, allow authenticated access
+      allow read, create, update, delete: if isAuthenticated();
+    }
+  }
+}

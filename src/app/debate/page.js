@@ -29,7 +29,8 @@ const DEBATE_TOPICS = [
 
 export default function DebatePage() {
   const { user } = useAuth();
-  const [mode, setMode] = useState("live"); // "live" or "solo"
+  const [mode, setMode] = useState("solo"); // "live" or "solo"
+  const [showLiveNotice, setShowLiveNotice] = useState(true);
   const [lobbies, setLobbies] = useState([]);
   const [isCreatingLobby, setIsCreatingLobby] = useState(false);
   const [activeDebate, setActiveDebate] = useState(null); // { lobbyId, isHost, topic }
@@ -190,13 +191,39 @@ export default function DebatePage() {
                 <h1 className={styles.title}>Pick your battle</h1>
                 
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
-                  <button className={`btn ${mode === 'live' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('live')}>Live Lobbies</button>
+                  <button 
+                    className={`btn ${mode === 'live' ? 'btn-primary' : 'btn-secondary'}`} 
+                    onClick={() => {
+                      setMode('live');
+                      setShowLiveNotice(true);
+                    }}
+                  >
+                    Live Lobbies
+                  </button>
                   <button className={`btn ${mode === 'solo' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('solo')}>Solo Practice</button>
                 </div>
               </div>
 
               {mode === "live" && (
                 <div style={{ marginTop: '2rem' }}>
+                  {showLiveNotice && (
+                    <div className={styles.noticeBanner}>
+                      <div className={styles.noticeIcon}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="16" x2="12" y2="12" />
+                          <line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                      </div>
+                      <div className={styles.noticeContent}>
+                        <h4 className={styles.noticeTitle}>Under Scheduled Upgrade</h4>
+                        <p className={styles.noticeText}>
+                          Live multiplayer rooms are currently offline for updates. Solo Practice remains fully available.
+                        </p>
+                      </div>
+                      <button className={styles.noticeClose} onClick={() => setShowLiveNotice(false)}>×</button>
+                    </div>
+                  )}
                   <h3 className={styles.sideTitle}>Active Lobbies</h3>
                   {lobbies.length === 0 ? (
                     <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No active lobbies. Start one below!</p>
